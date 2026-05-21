@@ -95,27 +95,50 @@
   </div>
 
   <script>
-  const services = [
-const services = [
-  {
-    name: "Cloudflare",
-    statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
-    pageUrl: "https://www.cloudflarestatus.com/",
-    type: "statuspage"
-  },
-  {
-    name: "GitHub",
-    statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
-    pageUrl: "https://www.githubstatus.com/",
-    type: "statuspage"
-  },
-  {
-    name: "Discord",
-    statusUrl: "https://discordstatus.com/api/v2/summary.json",
-    pageUrl: "https://discordstatus.com/",
-    type: "statuspage"
-  }
-];
+    const services = [
+      {
+        name: "Cloudflare",
+        statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
+        pageUrl: "https://www.cloudflarestatus.com/",
+        type: "statuspage"
+      },
+      {
+        name: "GitHub",
+        statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
+        pageUrl: "https://www.githubstatus.com/",
+        type: "statuspage"
+      },
+      {
+        name: "Discord",
+        statusUrl: "https://discordstatus.com/api/v2/summary.json",
+        pageUrl: "https://discordstatus.com/",
+        type: "statuspage"
+      },
+      {
+        name: "Duo",
+        statusUrl: "https://status.duo.com/api/v2/summary.json",
+        pageUrl: "https://status.duo.com/",
+        type: "statuspage"
+      },
+      {
+        name: "CodeTwo",
+        statusUrl: "https://status.codetwo.com/api/v2/summary.json",
+        pageUrl: "https://status.codetwo.com/",
+        type: "statuspage"
+      },
+      {
+        name: "CivicPlus",
+        statusUrl: "https://status.civicplus.com/api/v2/summary.json",
+        pageUrl: "https://status.civicplus.com/",
+        type: "statuspage"
+      },
+      {
+        name: "Webroot",
+        statusUrl: "https://status.webroot.com/api/v2/summary.json",
+        pageUrl: "https://status.webroot.com/",
+        type: "statuspage"
+      }
+    ];
 
     function normalizeStatus(type, data) {
       let raw = "";
@@ -125,15 +148,15 @@ const services = [
       }
 
       if (raw === "none") {
-        return { label: "No problems detected", className: "ok" };
+        return { label: "Operational", className: "ok" };
       }
 
       if (raw === "minor" || raw === "major") {
-        return { label: "Problems detected", className: "warn" };
+        return { label: "Official issue", className: "warn" };
       }
 
       if (raw === "critical") {
-        return { label: "Down", className: "down" };
+        return { label: "Major outage", className: "down" };
       }
 
       return { label: "Unknown", className: "unknown" };
@@ -151,7 +174,7 @@ const services = [
         row.href = service.pageUrl;
         row.target = "_blank";
         row.rel = "noopener noreferrer";
-        row.title = "Open details for " + service.name;
+        row.title = "Open official status page for " + service.name;
 
         const name = document.createElement("div");
         name.className = "name";
@@ -166,25 +189,37 @@ const services = [
         board.appendChild(row);
 
         try {
-          const response = await fetch(service.statusUrl, { cache: "no-store" });
+          const response = await fetch(service.statusUrl + "?t=" + Date.now(), {
+            cache: "no-store"
+          });
+
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+
           const data = await response.json();
           const status = normalizeStatus(service.type, data);
 
           badge.textContent = status.label;
           badge.className = "badge " + status.className;
         } catch (error) {
-          badge.textContent = "Unable to check";
+          badge.textContent = "Check failed";
           badge.className = "badge unknown";
+          console.log("Status check failed for " + service.name, error);
         }
       }
 
       lastUpdated.textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
-    loadStatuses();
-
-    // Auto-refresh every 2 minutes
-    setInterval(loadStatuses, 120000);
+    try {
+      loadStatuses();
+      setInterval(loadStatuses, 120000);
+    } catch (error) {
+      document.getElementById("statusBoard").innerHTML =
+        '<div class="service"><div class="name">Script error</div><div class="badge down">Fix code</div></div>';
+      console.log("Dashboard script error", error);
+    }
   </script>
 </body>
 </html>
