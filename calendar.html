@@ -20,11 +20,18 @@
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    body::-webkit-scrollbar {
+      display: none;
     }
 
     .calendar-board {
