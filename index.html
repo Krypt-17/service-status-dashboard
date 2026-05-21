@@ -186,9 +186,9 @@
         section: "Microsoft"
       },
       {
-        name: "Microsoft 365",
-        workerKey: "m365-suite",
-        pageUrl: "https://statusgator.com/services/microsoft-365-suite",
+        name: "Azure",
+        workerKey: "azure",
+        pageUrl: "https://statusgator.com/services/azure",
         type: "worker-outage"
       },
       {
@@ -198,31 +198,31 @@
         type: "worker-outage"
       },
       {
+        name: "Microsoft 365",
+        workerKey: "m365-suite",
+        pageUrl: "https://statusgator.com/services/microsoft-365-suite",
+        type: "worker-outage"
+      },
+      {
         name: "Microsoft Teams",
         workerKey: "microsoft-teams",
         pageUrl: "https://statusgator.com/services/microsoft-teams",
         type: "worker-outage"
       },
-      {
-        name: "Azure",
-        workerKey: "azure",
-        pageUrl: "https://statusgator.com/services/azure",
-        type: "worker-outage"
-      },
 
       {
-        section: "Web / Security"
+        section: "Web Services / Security"
+      },
+      {
+        name: "CivicPlus",
+        statusUrl: "https://status.civicplus.com/api/v2/summary.json",
+        pageUrl: "https://status.civicplus.com/",
+        type: "statuspage-incidents"
       },
       {
         name: "Cloudflare",
         statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
         pageUrl: "https://www.cloudflarestatus.com/",
-        type: "statuspage-incidents"
-      },
-      {
-        name: "Duo",
-        statusUrl: "https://status.duo.com/api/v2/summary.json",
-        pageUrl: "https://status.duo.com/",
         type: "statuspage-incidents"
       },
       {
@@ -232,9 +232,9 @@
         type: "statuspage-incidents"
       },
       {
-        name: "CivicPlus",
-        statusUrl: "https://status.civicplus.com/api/v2/summary.json",
-        pageUrl: "https://status.civicplus.com/",
+        name: "Duo",
+        statusUrl: "https://status.duo.com/api/v2/summary.json",
+        pageUrl: "https://status.duo.com/",
         type: "statuspage-incidents"
       },
       {
@@ -252,15 +252,15 @@
           "threat intelligence"
         ]
       },
+      {
+        name: "Tyler / Munis",
+        workerKey: "tyler-technologies",
+        pageUrl: "https://statusgator.com/services/tyler-technologies",
+        type: "worker-outage"
+      },
 
       {
         section: "Internet / Cellular"
-      },
-      {
-        name: "Verizon CLE",
-        workerKey: "verizon-cle",
-        pageUrl: "https://istheservicedown.com/problems/verizon/5150529-cleveland-cuyahoga-county-ohio-united-states",
-        type: "worker-outage"
       },
       {
         name: "AT&T Fiber CLE",
@@ -275,21 +275,21 @@
         type: "worker-outage"
       },
       {
-        name: "T-Mobile CLE",
-        workerKey: "tmobile-cle",
-        pageUrl: "https://istheservicedown.com/problems/t-mobile/5150529-cleveland-cuyahoga-county-ohio-united-states",
-        type: "worker-outage"
-      },
-      {
         name: "Spectrum CLE",
         workerKey: "spectrum-cle",
         pageUrl: "https://istheservicedown.com/problems/charter-communications/5150529-cleveland-cuyahoga-county-ohio-united-states",
         type: "worker-outage"
       },
       {
-        name: "Windstream",
-        workerKey: "windstream",
-        pageUrl: "https://statusgator.com/services/windstream",
+        name: "T-Mobile CLE",
+        workerKey: "tmobile-cle",
+        pageUrl: "https://istheservicedown.com/problems/t-mobile/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
+      },
+      {
+        name: "Verizon CLE",
+        workerKey: "verizon-cle",
+        pageUrl: "https://istheservicedown.com/problems/verizon/5150529-cleveland-cuyahoga-county-ohio-united-states",
         type: "worker-outage"
       },
 
@@ -300,6 +300,12 @@
         name: "Fusion Connect",
         workerKey: "fusion-connect",
         pageUrl: "https://downtime.expert/en/fusion-connect",
+        type: "worker-outage"
+      },
+      {
+        name: "Windstream",
+        workerKey: "windstream",
+        pageUrl: "https://statusgator.com/services/windstream",
         type: "worker-outage"
       }
     ];
