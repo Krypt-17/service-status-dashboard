@@ -15,6 +15,7 @@
       --orange: #f97316;
       --red: #ef4444;
       --gray: #737373;
+      --section: #8b8b8b;
     }
 
     * {
@@ -44,6 +45,19 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 5px;
+    }
+
+    .section {
+      grid-column: 1 / -1;
+      margin-top: 5px;
+      margin-bottom: -1px;
+      padding: 2px 1px;
+      color: var(--section);
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #242424;
     }
 
     .service {
@@ -147,6 +161,10 @@
         grid-template-columns: 1fr;
       }
 
+      .section {
+        grid-column: 1;
+      }
+
       .label {
         display: none;
       }
@@ -165,21 +183,40 @@
 
     const services = [
       {
+        section: "Microsoft"
+      },
+      {
+        name: "Microsoft 365",
+        workerKey: "m365-suite",
+        pageUrl: "https://statusgator.com/services/microsoft-365-suite",
+        type: "worker-outage"
+      },
+      {
+        name: "Exchange Online",
+        workerKey: "exchange-online",
+        pageUrl: "https://statusgator.com/services/exchange-online",
+        type: "worker-outage"
+      },
+      {
+        name: "Microsoft Teams",
+        workerKey: "microsoft-teams",
+        pageUrl: "https://statusgator.com/services/microsoft-teams",
+        type: "worker-outage"
+      },
+      {
+        name: "Azure",
+        workerKey: "azure",
+        pageUrl: "https://statusgator.com/services/azure",
+        type: "worker-outage"
+      },
+
+      {
+        section: "Web / Security"
+      },
+      {
         name: "Cloudflare",
         statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
         pageUrl: "https://www.cloudflarestatus.com/",
-        type: "statuspage-incidents"
-      },
-      {
-        name: "GitHub",
-        statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
-        pageUrl: "https://www.githubstatus.com/",
-        type: "statuspage-incidents"
-      },
-      {
-        name: "Discord",
-        statusUrl: "https://discordstatus.com/api/v2/summary.json",
-        pageUrl: "https://discordstatus.com/",
         type: "statuspage-incidents"
       },
       {
@@ -215,26 +252,10 @@
           "threat intelligence"
         ]
       },
-      {
-        name: "Apple",
-        statusUrl: "https://www.apple.com/support/systemstatus/data/system_status_en_US.js",
-        pageUrl: "https://www.apple.com/support/systemstatus/",
-        type: "apple-systemstatus"
-      },
 
       {
-        name: "Microsoft 365",
-        statusUrl: "",
-        pageUrl: "https://status.cloud.microsoft/",
-        type: "manual"
+        section: "Internet / Cellular"
       },
-      {
-        name: "Azure",
-        statusUrl: "",
-        pageUrl: "https://azure.status.microsoft/",
-        type: "manual"
-      },
-
       {
         name: "Verizon CLE",
         workerKey: "verizon-cle",
@@ -264,6 +285,22 @@
         workerKey: "spectrum-cle",
         pageUrl: "https://istheservicedown.com/problems/charter-communications/5150529-cleveland-cuyahoga-county-ohio-united-states",
         type: "worker-outage"
+      },
+      {
+        name: "Windstream",
+        workerKey: "windstream",
+        pageUrl: "https://statusgator.com/services/windstream",
+        type: "worker-outage"
+      },
+
+      {
+        section: "Voice / Phone"
+      },
+      {
+        name: "Fusion Connect",
+        workerKey: "fusion-connect",
+        pageUrl: "https://downtime.expert/en/fusion-connect",
+        type: "worker-outage"
       }
     ];
 
@@ -292,85 +329,6 @@
       }
 
       return "unknown";
-    }
-
-    function parseApplePayload(text) {
-      let cleaned = String(text || "").trim();
-
-      const firstBrace = cleaned.indexOf("{");
-      const lastBrace = cleaned.lastIndexOf("}");
-
-      if (firstBrace >= 0 && lastBrace > firstBrace) {
-        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
-      }
-
-      return JSON.parse(cleaned);
-    }
-
-    function normalizeAppleStatus(data) {
-      const appleServices = Array.isArray(data.services) ? data.services : [];
-
-      if (appleServices.length === 0) {
-        return {
-          label: "Unknown",
-          className: "unknown",
-          title: "Unable to parse Apple status"
-        };
-      }
-
-      let hasDown = false;
-      let hasWarn = false;
-
-      appleServices.forEach(function(service) {
-        const events = Array.isArray(service.events) ? service.events : [];
-
-        events.forEach(function(event) {
-          const statusType = String(event.statusType || "").toLowerCase();
-          const eventStatus = String(event.eventStatus || "").toLowerCase();
-          const message = String(event.message || "").toLowerCase();
-
-          const active =
-            eventStatus !== "completed" &&
-            eventStatus !== "resolved" &&
-            eventStatus !== "closed";
-
-          if (!active) {
-            return;
-          }
-
-          if (
-            statusType.includes("outage") ||
-            message.includes("unavailable") ||
-            message.includes("outage")
-          ) {
-            hasDown = true;
-          } else {
-            hasWarn = true;
-          }
-        });
-      });
-
-      if (hasDown) {
-        return {
-          label: "Outage",
-          className: "down",
-          title: "Apple reports an active outage"
-        };
-      }
-
-      if (hasWarn) {
-        return {
-          label: "Issue",
-          className: "warn",
-          title: "Apple reports an active issue"
-        };
-      }
-
-      return {
-        label: "OK",
-        className: "ok",
-        title: "Apple services appear operational"
-      };
     }
 
     function normalizeWorkerStatus(workerItem) {
@@ -416,21 +374,9 @@
     }
 
     function normalizeStatus(service, data, workerResults) {
-      if (service.type === "manual") {
-        return {
-          label: "Unknown",
-          className: "unknown",
-          title: "Click to check manually"
-        };
-      }
-
       if (service.type === "worker-outage") {
         const workerItem = workerResults[service.workerKey];
         return normalizeWorkerStatus(workerItem);
-      }
-
-      if (service.type === "apple-systemstatus") {
-        return normalizeAppleStatus(data);
       }
 
       if (service.type === "statuspage-components") {
@@ -538,7 +484,7 @@
       };
     }
 
-    async function fetchWithTimeout(url, timeoutMs, returnText) {
+    async function fetchWithTimeout(url, timeoutMs) {
       const controller = new AbortController();
 
       const timeout = setTimeout(function() {
@@ -559,10 +505,6 @@
           throw new Error("HTTP " + response.status);
         }
 
-        if (returnText) {
-          return await response.text();
-        }
-
         return await response.json();
       } catch (error) {
         clearTimeout(timeout);
@@ -574,7 +516,7 @@
       const results = {};
 
       try {
-        const data = await fetchWithTimeout(WORKER_URL, 10000, false);
+        const data = await fetchWithTimeout(WORKER_URL, 10000);
         const checks = Array.isArray(data.checks) ? data.checks : [];
 
         checks.forEach(function(item) {
@@ -587,6 +529,13 @@
       }
 
       return results;
+    }
+
+    function createSection(title) {
+      const section = document.createElement("div");
+      section.className = "section";
+      section.textContent = title;
+      return section;
     }
 
     function createRow(service) {
@@ -633,6 +582,11 @@
       const workerResults = await loadWorkerResults();
 
       for (const service of services) {
+        if (service.section) {
+          board.appendChild(createSection(service.section));
+          continue;
+        }
+
         const parts = createRow(service);
         board.appendChild(parts.row);
 
@@ -640,14 +594,10 @@
           let status;
           let data = {};
 
-          if (service.type === "manual" || service.type === "worker-outage") {
-            status = normalizeStatus(service, data, workerResults);
-          } else if (service.type === "apple-systemstatus") {
-            const text = await fetchWithTimeout(service.statusUrl, 8000, true);
-            data = parseApplePayload(text);
+          if (service.type === "worker-outage") {
             status = normalizeStatus(service, data, workerResults);
           } else {
-            data = await fetchWithTimeout(service.statusUrl, 8000, false);
+            data = await fetchWithTimeout(service.statusUrl, 8000);
             status = normalizeStatus(service, data, workerResults);
           }
 
