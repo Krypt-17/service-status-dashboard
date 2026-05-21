@@ -6,7 +6,6 @@
   <style>
     :root {
       --bg: #050505;
-      --panel: #111111;
       --row: #171717;
       --row-hover: #222222;
       --border: #2f2f2f;
@@ -162,6 +161,8 @@
   </div>
 
   <script>
+    const WORKER_URL = "https://service-outage-checker.nickpolice.workers.dev";
+
     const services = [
       {
         name: "Cloudflare",
@@ -213,6 +214,56 @@
           "core management console",
           "threat intelligence"
         ]
+      },
+      {
+        name: "Apple",
+        statusUrl: "https://www.apple.com/support/systemstatus/data/system_status_en_US.js",
+        pageUrl: "https://www.apple.com/support/systemstatus/",
+        type: "apple-systemstatus"
+      },
+
+      {
+        name: "Microsoft 365",
+        statusUrl: "",
+        pageUrl: "https://status.cloud.microsoft/",
+        type: "manual"
+      },
+      {
+        name: "Azure",
+        statusUrl: "",
+        pageUrl: "https://azure.status.microsoft/",
+        type: "manual"
+      },
+
+      {
+        name: "Verizon CLE",
+        workerKey: "verizon-cle",
+        pageUrl: "https://istheservicedown.com/problems/verizon/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
+      },
+      {
+        name: "AT&T Fiber CLE",
+        workerKey: "att-cle",
+        pageUrl: "https://istheservicedown.com/problems/att/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
+      },
+      {
+        name: "AT&T Mobile CLE",
+        workerKey: "att-cle",
+        pageUrl: "https://istheservicedown.com/problems/att/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
+      },
+      {
+        name: "T-Mobile CLE",
+        workerKey: "tmobile-cle",
+        pageUrl: "https://istheservicedown.com/problems/t-mobile/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
+      },
+      {
+        name: "Spectrum CLE",
+        workerKey: "spectrum-cle",
+        pageUrl: "https://istheservicedown.com/problems/charter-communications/5150529-cleveland-cuyahoga-county-ohio-united-states",
+        type: "worker-outage"
       }
     ];
 
@@ -243,7 +294,145 @@
       return "unknown";
     }
 
-    function normalizeStatus(service, data) {
+    function parseApplePayload(text) {
+      let cleaned = String(text || "").trim();
+
+      const firstBrace = cleaned.indexOf("{");
+      const lastBrace = cleaned.lastIndexOf("}");
+
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+
+      return JSON.parse(cleaned);
+    }
+
+    function normalizeAppleStatus(data) {
+      const appleServices = Array.isArray(data.services) ? data.services : [];
+
+      if (appleServices.length === 0) {
+        return {
+          label: "Unknown",
+          className: "unknown",
+          title: "Unable to parse Apple status"
+        };
+      }
+
+      let hasDown = false;
+      let hasWarn = false;
+
+      appleServices.forEach(function(service) {
+        const events = Array.isArray(service.events) ? service.events : [];
+
+        events.forEach(function(event) {
+          const statusType = String(event.statusType || "").toLowerCase();
+          const eventStatus = String(event.eventStatus || "").toLowerCase();
+          const message = String(event.message || "").toLowerCase();
+
+          const active =
+            eventStatus !== "completed" &&
+            eventStatus !== "resolved" &&
+            eventStatus !== "closed";
+
+          if (!active) {
+            return;
+          }
+
+          if (
+            statusType.includes("outage") ||
+            message.includes("unavailable") ||
+            message.includes("outage")
+          ) {
+            hasDown = true;
+          } else {
+            hasWarn = true;
+          }
+        });
+      });
+
+      if (hasDown) {
+        return {
+          label: "Outage",
+          className: "down",
+          title: "Apple reports an active outage"
+        };
+      }
+
+      if (hasWarn) {
+        return {
+          label: "Issue",
+          className: "warn",
+          title: "Apple reports an active issue"
+        };
+      }
+
+      return {
+        label: "OK",
+        className: "ok",
+        title: "Apple services appear operational"
+      };
+    }
+
+    function normalizeWorkerStatus(workerItem) {
+      if (!workerItem) {
+        return {
+          label: "Unknown",
+          className: "unknown",
+          title: "No Worker result found"
+        };
+      }
+
+      const status = String(workerItem.status || "").toLowerCase();
+
+      if (status === "ok") {
+        return {
+          label: "OK",
+          className: "ok",
+          title: workerItem.reason || "No problems detected"
+        };
+      }
+
+      if (status === "issue") {
+        return {
+          label: "Issue",
+          className: "warn",
+          title: workerItem.reason || "Problems detected"
+        };
+      }
+
+      if (status === "down") {
+        return {
+          label: "Outage",
+          className: "down",
+          title: workerItem.reason || "Outage detected"
+        };
+      }
+
+      return {
+        label: "Unknown",
+        className: "unknown",
+        title: workerItem.reason || "Unable to determine status"
+      };
+    }
+
+    function normalizeStatus(service, data, workerResults) {
+      if (service.type === "manual") {
+        return {
+          label: "Unknown",
+          className: "unknown",
+          title: "Click to check manually"
+        };
+      }
+
+      if (service.type === "worker-outage") {
+        const workerItem = workerResults[service.workerKey];
+        return normalizeWorkerStatus(workerItem);
+      }
+
+      if (service.type === "apple-systemstatus") {
+        return normalizeAppleStatus(data);
+      }
+
       if (service.type === "statuspage-components") {
         const components = Array.isArray(data.components) ? data.components : [];
         const keywords = Array.isArray(service.componentKeywords)
@@ -273,7 +462,7 @@
           return {
             label: "Outage",
             className: "down",
-            title: "One or more monitored OpenText components has a major outage"
+            title: "One or more monitored components has a major outage"
           };
         }
 
@@ -281,7 +470,7 @@
           return {
             label: "Issue",
             className: "warn",
-            title: "One or more monitored OpenText components has an issue or maintenance"
+            title: "One or more monitored components has an issue or maintenance"
           };
         }
 
@@ -289,7 +478,7 @@
           return {
             label: "OK",
             className: "ok",
-            title: "Monitored OpenText/Webroot components are operational"
+            title: "Monitored components are operational"
           };
         }
 
@@ -349,7 +538,7 @@
       };
     }
 
-    async function fetchWithTimeout(url, timeoutMs) {
+    async function fetchWithTimeout(url, timeoutMs, returnText) {
       const controller = new AbortController();
 
       const timeout = setTimeout(function() {
@@ -370,11 +559,34 @@
           throw new Error("HTTP " + response.status);
         }
 
+        if (returnText) {
+          return await response.text();
+        }
+
         return await response.json();
       } catch (error) {
         clearTimeout(timeout);
         throw error;
       }
+    }
+
+    async function loadWorkerResults() {
+      const results = {};
+
+      try {
+        const data = await fetchWithTimeout(WORKER_URL, 10000, false);
+        const checks = Array.isArray(data.checks) ? data.checks : [];
+
+        checks.forEach(function(item) {
+          if (item && item.key) {
+            results[item.key] = item;
+          }
+        });
+      } catch (error) {
+        console.log("Worker check failed", error);
+      }
+
+      return results;
     }
 
     function createRow(service) {
@@ -418,13 +630,26 @@
 
       board.innerHTML = "";
 
+      const workerResults = await loadWorkerResults();
+
       for (const service of services) {
         const parts = createRow(service);
         board.appendChild(parts.row);
 
         try {
-          const data = await fetchWithTimeout(service.statusUrl, 8000);
-          const status = normalizeStatus(service, data);
+          let status;
+          let data = {};
+
+          if (service.type === "manual" || service.type === "worker-outage") {
+            status = normalizeStatus(service, data, workerResults);
+          } else if (service.type === "apple-systemstatus") {
+            const text = await fetchWithTimeout(service.statusUrl, 8000, true);
+            data = parseApplePayload(text);
+            status = normalizeStatus(service, data, workerResults);
+          } else {
+            data = await fetchWithTimeout(service.statusUrl, 8000, false);
+            status = normalizeStatus(service, data, workerResults);
+          }
 
           parts.dot.className = "dot " + status.className;
           parts.label.className = "label " + status.className;
