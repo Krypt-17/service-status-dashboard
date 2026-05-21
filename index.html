@@ -200,19 +200,103 @@
         type: "statuspage-incidents"
       },
       {
-        name: "Webroot",
-        statusUrl: "",
-        pageUrl: "https://status.webroot.com/",
-        type: "link-only"
+        name: "OpenText",
+        statusUrl: "https://status.opentext.com/api/v2/summary.json",
+        pageUrl: "https://status.opentext.com/",
+        type: "statuspage-components",
+        componentKeywords: [
+          "webroot by opentext",
+          "core dns protection",
+          "core endpoint protection",
+          "core security awareness",
+          "unity - thrust api",
+          "core management console",
+          "threat intelligence"
+        ]
       }
     ];
 
+    function normalizeComponentStatus(statusText) {
+      const raw = String(statusText || "").toLowerCase();
+
+      if (raw === "operational") {
+        return "ok";
+      }
+
+      if (
+        raw.includes("major") ||
+        raw.includes("outage") ||
+        raw.includes("unavailable")
+      ) {
+        return "down";
+      }
+
+      if (
+        raw.includes("degraded") ||
+        raw.includes("partial") ||
+        raw.includes("maintenance") ||
+        raw.includes("performance")
+      ) {
+        return "warn";
+      }
+
+      return "unknown";
+    }
+
     function normalizeStatus(service, data) {
-      if (service.type === "link-only") {
+      if (service.type === "statuspage-components") {
+        const components = Array.isArray(data.components) ? data.components : [];
+        const keywords = Array.isArray(service.componentKeywords)
+          ? service.componentKeywords
+          : [];
+
+        const matched = components.filter(function(component) {
+          const name = String(component.name || "").toLowerCase();
+          return keywords.some(function(keyword) {
+            return name.includes(keyword);
+          });
+        });
+
+        if (matched.length === 0) {
+          return {
+            label: "Unknown",
+            className: "unknown",
+            title: "No matching components found"
+          };
+        }
+
+        const states = matched.map(function(component) {
+          return normalizeComponentStatus(component.status);
+        });
+
+        if (states.includes("down")) {
+          return {
+            label: "Outage",
+            className: "down",
+            title: "One or more monitored OpenText components has a major outage"
+          };
+        }
+
+        if (states.includes("warn")) {
+          return {
+            label: "Issue",
+            className: "warn",
+            title: "One or more monitored OpenText components has an issue or maintenance"
+          };
+        }
+
+        if (states.every(function(state) { return state === "ok"; })) {
+          return {
+            label: "OK",
+            className: "ok",
+            title: "Monitored OpenText/Webroot components are operational"
+          };
+        }
+
         return {
-          label: "Open",
+          label: "Unknown",
           className: "unknown",
-          title: "Open status page manually"
+          title: "Unable to determine all monitored component statuses"
         };
       }
 
@@ -339,14 +423,8 @@
         board.appendChild(parts.row);
 
         try {
-          let status;
-
-          if (!service.statusUrl) {
-            status = normalizeStatus(service, {});
-          } else {
-            const data = await fetchWithTimeout(service.statusUrl, 8000);
-            status = normalizeStatus(service, data);
-          }
+          const data = await fetchWithTimeout(service.statusUrl, 8000);
+          const status = normalizeStatus(service, data);
 
           parts.dot.className = "dot " + status.className;
           parts.label.className = "label " + status.className;
@@ -355,7 +433,7 @@
         } catch (error) {
           parts.dot.className = "dot unknown";
           parts.label.className = "label unknown";
-          parts.label.textContent = "Open";
+          parts.label.textContent = "Unknown";
           parts.row.title = service.name + ": Unable to check automatically";
           console.log("Status check failed for " + service.name, error);
         }
