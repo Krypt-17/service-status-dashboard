@@ -100,66 +100,107 @@
         name: "Cloudflare",
         statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
         pageUrl: "https://www.cloudflarestatus.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "GitHub",
         statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
         pageUrl: "https://www.githubstatus.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "Discord",
         statusUrl: "https://discordstatus.com/api/v2/summary.json",
         pageUrl: "https://discordstatus.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "Duo",
         statusUrl: "https://status.duo.com/api/v2/summary.json",
         pageUrl: "https://status.duo.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "CodeTwo",
         statusUrl: "https://status.codetwo.com/api/v2/summary.json",
         pageUrl: "https://status.codetwo.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "CivicPlus",
         statusUrl: "https://status.civicplus.com/api/v2/summary.json",
         pageUrl: "https://status.civicplus.com/",
-        type: "statuspage"
+        type: "statuspage-incidents"
       },
       {
         name: "Webroot",
-        statusUrl: "https://status.webroot.com/api/v2/summary.json",
+        statusUrl: "",
         pageUrl: "https://status.webroot.com/",
-        type: "statuspage"
+        type: "link-only"
       }
     ];
 
-    function normalizeStatus(type, data) {
-      let raw = "";
-
-      if (type === "statuspage") {
-        raw = String(data.status?.indicator || "").toLowerCase();
+    function normalizeStatus(service, data) {
+      if (service.type === "link-only") {
+        return { label: "Open status", className: "unknown" };
       }
 
-      if (raw === "none") {
-        return { label: "Operational", className: "ok" };
-      }
+      if (service.type === "statuspage-incidents") {
+        const incidents = Array.isArray(data.incidents) ? data.incidents : [];
 
-      if (raw === "minor" || raw === "major") {
+        const activeIncidents = incidents.filter(function(incident) {
+          const status = String(incident.status || "").toLowerCase();
+          return status !== "resolved" && status !== "postmortem";
+        });
+
+        if (activeIncidents.length === 0) {
+          return { label: "Operational", className: "ok" };
+        }
+
+        const hasCritical = activeIncidents.some(function(incident) {
+          const impact = String(incident.impact || "").toLowerCase();
+          const name = String(incident.name || "").toLowerCase();
+
+          return (
+            impact === "critical" ||
+            impact === "major" ||
+            name.includes("outage")
+          );
+        });
+
+        if (hasCritical) {
+          return { label: "Major outage", className: "down" };
+        }
+
         return { label: "Official issue", className: "warn" };
       }
 
-      if (raw === "critical") {
-        return { label: "Major outage", className: "down" };
-      }
-
       return { label: "Unknown", className: "unknown" };
+    }
+
+    async function fetchWithTimeout(url, timeoutMs) {
+      const controller = new AbortController();
+      const timeout = setTimeout(function() {
+        controller.abort();
+      }, timeoutMs);
+
+      try {
+        const response = await fetch(url + "?t=" + Date.now(), {
+          cache: "no-store",
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        return await response.json();
+      } catch (error) {
+        clearTimeout(timeout);
+        throw error;
+      }
     }
 
     async function loadStatuses() {
@@ -174,7 +215,7 @@
         row.href = service.pageUrl;
         row.target = "_blank";
         row.rel = "noopener noreferrer";
-        row.title = "Open official status page for " + service.name;
+        row.title = "Open status page for " + service.name;
 
         const name = document.createElement("div");
         name.className = "name";
@@ -189,21 +230,19 @@
         board.appendChild(row);
 
         try {
-          const response = await fetch(service.statusUrl + "?t=" + Date.now(), {
-            cache: "no-store"
-          });
+          let status;
 
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+          if (!service.statusUrl) {
+            status = normalizeStatus(service, {});
+          } else {
+            const data = await fetchWithTimeout(service.statusUrl, 8000);
+            status = normalizeStatus(service, data);
           }
-
-          const data = await response.json();
-          const status = normalizeStatus(service.type, data);
 
           badge.textContent = status.label;
           badge.className = "badge " + status.className;
         } catch (error) {
-          badge.textContent = "Check failed";
+          badge.textContent = "Open status";
           badge.className = "badge unknown";
           console.log("Status check failed for " + service.name, error);
         }
@@ -212,14 +251,8 @@
       lastUpdated.textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
-    try {
-      loadStatuses();
-      setInterval(loadStatuses, 120000);
-    } catch (error) {
-      document.getElementById("statusBoard").innerHTML =
-        '<div class="service"><div class="name">Script error</div><div class="badge down">Fix code</div></div>';
-      console.log("Dashboard script error", error);
-    }
+    loadStatuses();
+    setInterval(loadStatuses, 120000);
   </script>
 </body>
 </html>
