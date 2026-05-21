@@ -95,26 +95,27 @@
   </div>
 
   <script>
-    const services = [
-      {
-        name: "Cloudflare",
-        statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
-        pageUrl: "https://istheservicedown.com/problems/cloudflare",
-        type: "statuspage"
-      },
-      {
-        name: "GitHub",
-        statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
-        pageUrl: "https://istheservicedown.com/problems/github",
-        type: "statuspage"
-      },
-      {
-        name: "Discord",
-        statusUrl: "https://discordstatus.com/api/v2/summary.json",
-        pageUrl: "https://istheservicedown.com/problems/discord",
-        type: "statuspage"
-      }
-    ];
+  const services = [
+const services = [
+  {
+    name: "Cloudflare",
+    statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
+    pageUrl: "https://www.cloudflarestatus.com/",
+    type: "statuspage"
+  },
+  {
+    name: "GitHub",
+    statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
+    pageUrl: "https://www.githubstatus.com/",
+    type: "statuspage"
+  },
+  {
+    name: "Discord",
+    statusUrl: "https://discordstatus.com/api/v2/summary.json",
+    pageUrl: "https://discordstatus.com/",
+    type: "statuspage"
+  }
+];
 
     function normalizeStatus(type, data) {
       let raw = "";
