@@ -54,13 +54,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text);
-      text-decoration: none;
       overflow: hidden;
-    }
-
-    .event:hover {
-      background: var(--row-hover);
-      border-color: #444444;
     }
 
     .dot {
@@ -129,10 +123,25 @@
 
   <script>
     const CALENDAR_WORKER_URL = "https://mayfield-calendar-feed.nickpolice.workers.dev/";
-    const FALLBACK_CALENDAR_URL = "https://mayfieldheightsohio.gov/Calendar.aspx";
 
-    function formatDateParts(dateValue, allDay) {
-      const date = new Date(dateValue);
+    function getLocalDateFromEvent(event) {
+      if (event.allDay && event.startDate) {
+        const parts = event.startDate.split("-");
+        return new Date(
+          Number(parts[0]),
+          Number(parts[1]) - 1,
+          Number(parts[2]),
+          12,
+          0,
+          0
+        );
+      }
+
+      return new Date(event.start);
+    }
+
+    function formatDateParts(event) {
+      const date = getLocalDateFromEvent(event);
 
       const day = date.toLocaleDateString(undefined, {
         weekday: "short"
@@ -143,7 +152,7 @@
         day: "numeric"
       });
 
-      const time = allDay
+      const time = event.allDay
         ? "All day"
         : date.toLocaleTimeString(undefined, {
             hour: "numeric",
@@ -158,11 +167,8 @@
     }
 
     function createEventRow(event) {
-      const link = document.createElement("a");
-      link.className = "event";
-      link.href = event.url || FALLBACK_CALENDAR_URL;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
+      const row = document.createElement("div");
+      row.className = "event";
 
       const dot = document.createElement("span");
       dot.className = "dot";
@@ -170,7 +176,7 @@
       const dateBox = document.createElement("div");
       dateBox.className = "date";
 
-      const parts = formatDateParts(event.start, event.allDay);
+      const parts = formatDateParts(event);
       dateBox.innerHTML = parts.day + "<br>" + parts.monthDay;
 
       const details = document.createElement("div");
@@ -199,11 +205,11 @@
       details.appendChild(title);
       details.appendChild(meta);
 
-      link.appendChild(dot);
-      link.appendChild(dateBox);
-      link.appendChild(details);
+      row.appendChild(dot);
+      row.appendChild(dateBox);
+      row.appendChild(details);
 
-      return link;
+      return row;
     }
 
     async function loadEvents() {
@@ -233,7 +239,7 @@
           empty.textContent = "No upcoming events found.";
           eventList.appendChild(empty);
         } else {
-          events.forEach(function(event) {
+          events.slice(0, 20).forEach(function(event) {
             eventList.appendChild(createEventRow(event));
           });
         }
