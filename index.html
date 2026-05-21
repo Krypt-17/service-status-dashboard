@@ -12,13 +12,13 @@
     }
 
     .status-board {
-      padding: 12px;
+      padding: 7px;
     }
 
     .header {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .service {
@@ -27,22 +27,37 @@
       align-items: center;
       background: #1f2937;
       border: 1px solid #374151;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 8px;
+      border-radius: 6px;
+      padding: 5px 7px;
+      margin-bottom: 5px;
+      text-decoration: none;
+      color: #f9fafb;
+      min-height: 24px;
+      box-sizing: border-box;
+    }
+
+    .service:hover {
+      background: #273449;
+      border-color: #4b5563;
     }
 
     .name {
       font-weight: bold;
-      font-size: 14px;
+      font-size: 12px;
+      line-height: 1.1;
+      padding-right: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .badge {
       border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 12px;
+      padding: 3px 7px;
+      font-size: 10px;
       font-weight: bold;
       white-space: nowrap;
+      line-height: 1.1;
     }
 
     .ok {
@@ -66,8 +81,8 @@
     }
 
     .updated {
-      margin-top: 10px;
-      font-size: 11px;
+      margin-top: 6px;
+      font-size: 10px;
       color: #9ca3af;
     }
   </style>
@@ -83,17 +98,20 @@
     const services = [
       {
         name: "Cloudflare",
-        url: "https://www.cloudflarestatus.com/api/v2/summary.json",
+        statusUrl: "https://www.cloudflarestatus.com/api/v2/summary.json",
+        pageUrl: "https://istheservicedown.com/problems/cloudflare",
         type: "statuspage"
       },
       {
         name: "GitHub",
-        url: "https://www.githubstatus.com/api/v2/summary.json",
+        statusUrl: "https://www.githubstatus.com/api/v2/summary.json",
+        pageUrl: "https://istheservicedown.com/problems/github",
         type: "statuspage"
       },
       {
         name: "Discord",
-        url: "https://discordstatus.com/api/v2/summary.json",
+        statusUrl: "https://discordstatus.com/api/v2/summary.json",
+        pageUrl: "https://istheservicedown.com/problems/discord",
         type: "statuspage"
       }
     ];
@@ -127,8 +145,12 @@
       board.innerHTML = "";
 
       for (const service of services) {
-        const row = document.createElement("div");
+        const row = document.createElement("a");
         row.className = "service";
+        row.href = service.pageUrl;
+        row.target = "_blank";
+        row.rel = "noopener noreferrer";
+        row.title = "Open details for " + service.name;
 
         const name = document.createElement("div");
         name.className = "name";
@@ -143,7 +165,7 @@
         board.appendChild(row);
 
         try {
-          const response = await fetch(service.url);
+          const response = await fetch(service.statusUrl, { cache: "no-store" });
           const data = await response.json();
           const status = normalizeStatus(service.type, data);
 
@@ -155,11 +177,13 @@
         }
       }
 
-      lastUpdated.textContent = "Last updated: " + new Date().toLocaleString();
+      lastUpdated.textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
     loadStatuses();
-    setInterval(loadStatuses, 300000);
+
+    // Auto-refresh every 2 minutes
+    setInterval(loadStatuses, 120000);
   </script>
 </body>
 </html>
