@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Service Status Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: #f9fafb;
+    }
+
+    .status-board {
+      padding: 12px;
+    }
+
+    .header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .service {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .name {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .ok {
+      background: #166534;
+      color: white;
+    }
+
+    .warn {
+      background: #b45309;
+      color: white;
+    }
+
+    .down {
+      background: #991b1b;
+      color: white;
+    }
+
+    .unknown {
+      background: #4b5563;
+      color: white;
+    }
+
+    .updated {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="status-board">
+    <div class="header">Service Status</div>
+    <div id="statusBoard">Loading service status...</div>
+    <div class="updated" id="lastUpdated"></div>
+  </div>
+
+  <script>
+    const services = [
+      {
+        name: "Cloudflare",
+        url: "https://www.cloudflarestatus.com/api/v2/summary.json",
+        type: "statuspage"
+      },
+      {
+        name: "GitHub",
+        url: "https://www.githubstatus.com/api/v2/summary.json",
+        type: "statuspage"
+      },
+      {
+        name: "Discord",
+        url: "https://discordstatus.com/api/v2/summary.json",
+        type: "statuspage"
+      }
+    ];
+
+    function normalizeStatus(type, data) {
+      let raw = "";
+
+      if (type === "statuspage") {
+        raw = String(data.status?.indicator || "").toLowerCase();
+      }
+
+      if (raw === "none") {
+        return { label: "No problems detected", className: "ok" };
+      }
+
+      if (raw === "minor" || raw === "major") {
+        return { label: "Problems detected", className: "warn" };
+      }
+
+      if (raw === "critical") {
+        return { label: "Down", className: "down" };
+      }
+
+      return { label: "Unknown", className: "unknown" };
+    }
+
+    async function loadStatuses() {
+      const board = document.getElementById("statusBoard");
+      const lastUpdated = document.getElementById("lastUpdated");
+
+      board.innerHTML = "";
+
+      for (const service of services) {
+        const row = document.createElement("div");
+        row.className = "service";
+
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = service.name;
+
+        const badge = document.createElement("div");
+        badge.className = "badge unknown";
+        badge.textContent = "Checking...";
+
+        row.appendChild(name);
+        row.appendChild(badge);
+        board.appendChild(row);
+
+        try {
+          const response = await fetch(service.url);
+          const data = await response.json();
+          const status = normalizeStatus(service.type, data);
+
+          badge.textContent = status.label;
+          badge.className = "badge " + status.className;
+        } catch (error) {
+          badge.textContent = "Unable to check";
+          badge.className = "badge unknown";
+        }
+      }
+
+      lastUpdated.textContent = "Last updated: " + new Date().toLocaleString();
+    }
+
+    loadStatuses();
+    setInterval(loadStatuses, 300000);
+  </script>
+</body>
+</html>
